@@ -1,0 +1,28 @@
+/* Español */
+
+"menu.mic.on" = "Micrófono: activado";
+"menu.mic.off" = "Micrófono: desactivado";
+"menu.toggle" = "Alternar (%@)";
+"menu.changeKey" = "Cambiar tecla…  (%@)";
+"menu.keyActive" = "⌨️ %@ — activa";
+"menu.keyActiveCarbon" = "⌨️ %@ — activa (Carbon)";
+"menu.keyTapUnavailable" = "⚠️ Tecla no interceptada (tap no disponible)";
+"menu.keyNeedsAccessibility" = "⚠️ Se requiere acceso a Accesibilidad — pulse aquí";
+"menu.launchAtLogin" = "Lanzar al iniciar sesión";
+"menu.quit" = "Salir de MicMute";
+"menu.version" = "MicMute v%@, compilación %@";
+
+"capture.title" = "Cambiar tecla";
+"capture.prompt" = "Pulse una tecla nueva o combinación…";
+"capture.cancelHint" = "Esc — cancelar";
+
+"alert.dangerous.title" = "Tecla «%@» sin modificadores";
+"alert.dangerous.message" = "Se interceptará en todas las apps — no podrá escribir este carácter. ¿Continuar?";
+"alert.dangerous.continue" = "Continuar";
+"alert.dangerous.cancel" = "Cancelar";
+"alert.regfail.title" = "No se pudo asignar «%@»";
+"alert.regfail.message" = "Puede que la tecla esté en uso por el sistema u otra app.";
+"alert.ok" = "Aceptar";
+"alert.loginitem.title" = "No se pudo cambiar el inicio automático";
+
+"keys.space" = "Espacio";

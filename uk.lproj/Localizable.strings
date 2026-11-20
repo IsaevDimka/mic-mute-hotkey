@@ -1,0 +1,28 @@
+/* Українська */
+
+"menu.mic.on" = "Мікрофон: увімкнено";
+"menu.mic.off" = "Мікрофон: вимкнено";
+"menu.toggle" = "Перемкнути (%@)";
+"menu.changeKey" = "Змінити клавішу…  (%@)";
+"menu.keyActive" = "⌨️ %@ — активна";
+"menu.keyActiveCarbon" = "⌨️ %@ — активна (Carbon)";
+"menu.keyTapUnavailable" = "⚠️ Клавішу не перехоплено (tap недоступний)";
+"menu.keyNeedsAccessibility" = "⚠️ Потрібен доступ «Універсальний доступ» — натисніть тут";
+"menu.launchAtLogin" = "Запускати при вході";
+"menu.quit" = "Завершити MicMute";
+"menu.version" = "MicMute v%@, збірка %@";
+
+"capture.title" = "Зміна клавіші";
+"capture.prompt" = "Натисніть нову клавішу або комбінацію…";
+"capture.cancelHint" = "Esc — скасувати";
+
+"alert.dangerous.title" = "Клавіша «%@» без модифікаторів";
+"alert.dangerous.message" = "Вона перехоплюватиметься в усіх програмах — ввести цей символ стане неможливо. Продовжити?";
+"alert.dangerous.continue" = "Продовжити";
+"alert.dangerous.cancel" = "Скасувати";
+"alert.regfail.title" = "Не вдалося призначити «%@»";
+"alert.regfail.message" = "Можливо, клавіша зайнята системою або іншою програмою.";
+"alert.ok" = "OK";
+"alert.loginitem.title" = "Не вдалося змінити автозапуск";
+
+"keys.space" = "Пробіл";

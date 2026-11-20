@@ -1,0 +1,28 @@
+/* Русский */
+
+"menu.mic.on" = "Микрофон: включён";
+"menu.mic.off" = "Микрофон: выключен";
+"menu.toggle" = "Переключить (%@)";
+"menu.changeKey" = "Сменить клавишу…  (%@)";
+"menu.keyActive" = "⌨️ %@ — активна";
+"menu.keyActiveCarbon" = "⌨️ %@ — активна (Carbon)";
+"menu.keyTapUnavailable" = "⚠️ Клавиша не перехватывается (tap недоступен)";
+"menu.keyNeedsAccessibility" = "⚠️ Нужен доступ «Универсальный доступ» — нажмите сюда";
+"menu.launchAtLogin" = "Запускаться при входе";
+"menu.quit" = "Завершить MicMute";
+"menu.version" = "MicMute v%@, сборка %@";
+
+"capture.title" = "Смена клавиши";
+"capture.prompt" = "Нажмите новую клавишу или комбинацию…";
+"capture.cancelHint" = "Esc — отмена";
+
+"alert.dangerous.title" = "Клавиша «%@» без модификаторов";
+"alert.dangerous.message" = "Она будет перехватываться во всех приложениях — вводить этот символ станет невозможно. Продолжить?";
+"alert.dangerous.continue" = "Продолжить";
+"alert.dangerous.cancel" = "Отмена";
+"alert.regfail.title" = "Не удалось назначить «%@»";
+"alert.regfail.message" = "Возможно, клавиша занята системой или другим приложением.";
+"alert.ok" = "OK";
+"alert.loginitem.title" = "Не удалось изменить автозапуск";
+
+"keys.space" = "Пробел";

@@ -1,0 +1,28 @@
+/* English */
+
+"menu.mic.on" = "Microphone: on";
+"menu.mic.off" = "Microphone: off";
+"menu.toggle" = "Toggle (%@)";
+"menu.changeKey" = "Change Hotkey…  (%@)";
+"menu.keyActive" = "⌨️ %@ — active";
+"menu.keyActiveCarbon" = "⌨️ %@ — active (Carbon)";
+"menu.keyTapUnavailable" = "⚠️ Hotkey not intercepted (tap unavailable)";
+"menu.keyNeedsAccessibility" = "⚠️ Accessibility access needed — click here";
+"menu.launchAtLogin" = "Launch at login";
+"menu.quit" = "Quit MicMute";
+"menu.version" = "MicMute v%@, build %@";
+
+"capture.title" = "Change Hotkey";
+"capture.prompt" = "Press a new key or combination…";
+"capture.cancelHint" = "Esc — cancel";
+
+"alert.dangerous.title" = "Key “%@” without modifiers";
+"alert.dangerous.message" = "It will be intercepted in all apps — you won't be able to type this character. Continue?";
+"alert.dangerous.continue" = "Continue";
+"alert.dangerous.cancel" = "Cancel";
+"alert.regfail.title" = "Could not assign “%@”";
+"alert.regfail.message" = "The key may be used by the system or another app.";
+"alert.ok" = "OK";
+"alert.loginitem.title" = "Could not change launch at login";
+
+"keys.space" = "Space";

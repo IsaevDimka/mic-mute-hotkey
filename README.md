@@ -24,7 +24,22 @@
 - **Переключить микрофон** — горячая клавиша (по умолчанию F5) или пункт меню
 - **Сменить клавишу** — меню → «Сменить клавишу…» → нажать любую клавишу/комбинацию
 - Иконка в меню-баре: 🎤 — микрофон включён, красный перечёркнутый — выключен
-- **Отладка** — меню → «Отладка: лог клавиш»; лог пишется в `~/Library/Logs/micmute-keys.log`
+
+## Локализация
+
+Интерфейс переведён на 6 языков: английский, русский, украинский, немецкий, французский, испанский. Язык подбирается автоматически по системным настройкам (переключение: System Settings → General → Language - Иконка в меню-баре: 🎤 — микрофон включён, красный перечёркнутый — выключен Region).
+
+## Публикация в Mac App Store
+
+1. Купить Apple Developer Program ($99/год)
+2. App Store Connect → Identifiers → App ID `com.isaevdimka.micmute` (Mac)
+3. Certificates → создать **Apple Distribution**
+4. Profiles → Mac App Store profile для App ID → скачать
+5. `MAS_IDENTITY="Apple Distribution: Имя (TEAMID)" MAS_PROFILE=/путь.provisionprofile ./mas.sh`
+6. Загрузить `mas-build/MicMute-mas.zip` через Transporter → отправить на review
+
+Сборка для MAS: песочница, Carbon-хоткеи (без Accessibility), автозапуск через SMAppService.
+
 
 CLI: `MicMute --toggle` / `MicMute --status` (exit code: 0 = muted, 1 = unmuted)
 

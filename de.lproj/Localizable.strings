@@ -1,0 +1,28 @@
+/* Deutsch */
+
+"menu.mic.on" = "Mikrofon: ein";
+"menu.mic.off" = "Mikrofon: aus";
+"menu.toggle" = "Umschalten (%@)";
+"menu.changeKey" = "Taste ändern…  (%@)";
+"menu.keyActive" = "⌨️ %@ — aktiv";
+"menu.keyActiveCarbon" = "⌨️ %@ — aktiv (Carbon)";
+"menu.keyTapUnavailable" = "⚠️ Taste wird nicht abgefangen (Tap nicht verfügbar)";
+"menu.keyNeedsAccessibility" = "⚠️ Bedienungshilfen-Zugriff nötig — hier klicken";
+"menu.launchAtLogin" = "Beim Login starten";
+"menu.quit" = "MicMute beenden";
+"menu.version" = "MicMute v%@, Build %@";
+
+"capture.title" = "Taste ändern";
+"capture.prompt" = "Neue Taste oder Kombination drücken…";
+"capture.cancelHint" = "Esc — Abbrechen";
+
+"alert.dangerous.title" = "Taste „%@“ ohne Modifikatoren";
+"alert.dangerous.message" = "Sie wird in allen Apps abgefangen — dieses Zeichen lässt sich dann nicht mehr eingeben. Fortfahren?";
+"alert.dangerous.continue" = "Fortfahren";
+"alert.dangerous.cancel" = "Abbrechen";
+"alert.regfail.title" = "„%@“ konnte nicht zugewiesen werden";
+"alert.regfail.message" = "Die Taste wird möglicherweise vom System oder einer anderen App belegt.";
+"alert.ok" = "OK";
+"alert.loginitem.title" = "Autostart konnte nicht geändert werden";
+
+"keys.space" = "Leertaste";

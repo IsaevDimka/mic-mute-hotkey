@@ -4,15 +4,26 @@ import Carbon
 import ApplicationServices
 import ServiceManagement
 
+// MARK: - Локализация
+
+func L(_ key: String) -> String {
+    NSLocalizedString(key, bundle: .main, comment: "")
+}
+
+func L(_ key: String, _ args: CVarArg...) -> String {
+    String(format: NSLocalizedString(key, bundle: .main, comment: ""), arguments: args)
+}
+
 // MARK: - Глобальное состояние
 
-var debugKeyLogging = UserDefaults.standard.bool(forKey: "DebugKeys")
 var captureInProgress = false
 
 let secondaryFnMask: UInt32 = 1 << 23  // физическая клавиша fn; не считаем модификатором
 
-func logKeyLine(_ s: String) {
-    let url = URL(fileURLWithPath: NSHomeDirectory() + "/Library/Logs/micmute-keys.log")
+/// Служебный лог жизненного цикла (без нажатий клавиш). Файл появляется только
+/// при наличии событий tap'а; можно удалить — создастся заново.
+func logLifecycle(_ s: String) {
+    let url = URL(fileURLWithPath: NSHomeDirectory() + "/Library/Logs/micmute.log")
     let fmt = DateFormatter()
     fmt.dateFormat = "HH:mm:ss.SSS"
     let line = "\(fmt.string(from: Date())) \(s)\n"
@@ -250,7 +261,7 @@ func keyName(forKeyCode keyCode: UInt16) -> String {
     let special: [UInt16: String] = [
         122: "F1", 120: "F2", 99: "F3", 118: "F4", 96: "F5", 97: "F6",
         98: "F7", 100: "F8", 101: "F9", 109: "F10", 103: "F11", 111: "F12",
-        36: "Return", 48: "Tab", 49: "Пробел", 51: "Delete", 53: "Esc",
+        36: "Return", 48: "Tab", 49: L("keys.space"), 51: "Delete", 53: "Esc",
         123: "←", 124: "→", 125: "↓", 126: "↑",
         116: "Page Up", 121: "Page Down", 115: "Home", 119: "End",
     ]
@@ -281,10 +292,10 @@ func currentKeyName() -> String {
 func isDangerousCombo(code: UInt32, mods: UInt32) -> Bool {
     guard mods == 0 else { return false }
     let name = keyName(forKeyCode: UInt16(code))
-    return name.count == 1 || name == "Пробел"
+    return name.count == 1 || name == L("keys.space")
 }
 
-// MARK: - Горячая клавиша: CGEventTap (основной) + Carbon (fallback)
+// MARK: - Горячая клавиша: CGEventTap (основной) + Carbon (fallback / MAS)
 
 private var carbonHotKey: EventHotKeyRef?
 var carbonHotKeyActive = false
@@ -342,7 +353,7 @@ final class HotkeyTap {
     private func checkSilence() {
         guard let tap = tap else { return }
         if !CGEvent.tapIsEnabled(tap: tap) {
-            logKeyLine("--- tap disabled externally, re-enabling ---")
+            logLifecycle("tap disabled externally, re-enabling")
             CGEvent.tapEnable(tap: tap, enable: true)
             return
         }
@@ -350,7 +361,7 @@ final class HotkeyTap {
         guard Date().timeIntervalSince(lastEventAt) > 6 else { return }
         flipCount += 1
         if flipCount >= levels.count * 2 {
-            logKeyLine("--- tap never delivered events, abandoning -> Carbon ---")
+            logLifecycle("tap never delivered events, abandoning -> Carbon")
             lastFlipAt = Date()
             invalidateTap()
             tapAbandoned = true
@@ -360,7 +371,7 @@ final class HotkeyTap {
             }
             return
         }
-        logKeyLine("--- tap silent >6s on level=\(levels[levelIdx].1), switching ---")
+        logLifecycle("tap silent >6s on level=\(levels[levelIdx].1), switching")
         lastFlipAt = Date()
         invalidateTap()
         levelIdx = (levelIdx + 1) % levels.count
@@ -401,8 +412,7 @@ final class HotkeyTap {
             callback: callback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()) else {
             createFailures += 1
-            NSLog("MicMute: не удалось создать event tap (level=\(levelName))")
-            logKeyLine("--- tap create FAILED (level=\(levelName)) ---")
+            logLifecycle("tap create FAILED (level=\(levelName))")
             return
         }
         tap = tapRef
@@ -411,8 +421,7 @@ final class HotkeyTap {
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tapRef, enable: true)
         lastEventAt = Date()
-        NSLog("MicMute: event tap создан (уровень \(levelName))")
-        logKeyLine("--- tap created (level=\(levelName)) enabled=\(CGEvent.tapIsEnabled(tap: tapRef)) ---")
+        logLifecycle("tap created (level=\(levelName)) enabled=\(CGEvent.tapIsEnabled(tap: tapRef))")
         // Tap жив — Carbon-дубль не нужен
         unregisterCarbonHotKey()
     }
@@ -421,24 +430,14 @@ final class HotkeyTap {
         lastEventAt = Date()
         if !pinned {
             pinned = true
-            logKeyLine("--- level \(levels[levelIdx].1) delivers events, pinned ---")
+            logLifecycle("level \(levels[levelIdx].1) delivers events, pinned")
         }
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            logKeyLine("--- tap DISABLED (type=\(type.rawValue)), re-enabling ---")
+            logLifecycle("tap DISABLED (type=\(type.rawValue)), re-enabling")
             if let tap = tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return Unmanaged.passUnretained(event)
         }
-        if debugKeyLogging {
-            logKeyLine("event type=\(type.rawValue)")
-        }
-        if type.rawValue == 14 { // kCGEventOtherEvent (NX_SYSDEFINED и прочие)
-            if debugKeyLogging {
-                // Дамп всех потенциально значимых полей — ищем, где лежит код клавиши
-                func f(_ field: Int) -> String {
-                    String(event.getIntegerValueField(CGEventField(rawValue: UInt32(field))!), radix: 16)
-                }
-                logKeyLine("otherEvent keycode=\(f(9)) srcData=\(f(42)) srcID=\(f(43)) srcGroup=\(f(44)) srcState=\(f(45)) f87=\(f(87)) f101=\(f(101)) subtype=\(f(108)) flags=0x\(String(event.flags.rawValue, radix: 16))")
-            }
+        if type.rawValue == 14 { // kCGEventOtherEvent — не перехватываем
             return Unmanaged.passUnretained(event)
         }
         // keyDown
@@ -446,9 +445,6 @@ final class HotkeyTap {
         let rawMods = UInt32(event.flags.rawValue)
             & UInt32(NSEvent.ModifierFlags.deviceIndependentFlagsMask.rawValue)
         let cgMods = rawMods & ~secondaryFnMask  // fn не считаем модификатором
-        if debugKeyLogging {
-            logKeyLine("keyDown code=\(keyCode) mods=0x\(String(cgMods, radix: 16)) raw=0x\(String(rawMods, radix: 16)) repeat=\(event.getIntegerValueField(.keyboardEventAutorepeat))")
-        }
         if !captureInProgress {
             let combo = currentKeyCombo()
             if keyCode == combo.code && toCGMask(combo.mods) == cgMods {
@@ -482,7 +478,7 @@ func applyHotKey() -> Bool {
         return true
     }
     carbonHotKeyActive = false
-    NSLog("MicMute: не удалось зарегистрировать клавишу \(combo.code)+\(combo.mods), err=\(err)")
+    logLifecycle("Carbon hotkey register FAILED code=\(combo.code)+\(combo.mods) err=\(err)")
     return false
 }
 
@@ -522,18 +518,18 @@ final class KeyCaptureController: NSObject, NSWindowDelegate {
             contentRect: NSRect(x: 0, y: 0, width: 400, height: 140),
             styleMask: [.titled, .closable],
             backing: .buffered, defer: false)
-        panel.title = "Смена клавиши"
+        panel.title = L("capture.title")
         panel.level = .floating
         panel.delegate = self
         panel.center()
 
-        let label = NSTextField(labelWithString: "Нажмите новую клавишу или комбинацию…")
+        let label = NSTextField(labelWithString: L("capture.prompt"))
         label.frame = NSRect(x: 0, y: 78, width: 400, height: 24)
         label.alignment = .center
         label.font = .systemFont(ofSize: 15, weight: .medium)
         panel.contentView?.addSubview(label)
 
-        let hint = NSTextField(labelWithString: "Esc — отмена")
+        let hint = NSTextField(labelWithString: L("capture.cancelHint"))
         hint.frame = NSRect(x: 0, y: 44, width: 400, height: 18)
         hint.alignment = .center
         hint.textColor = .secondaryLabelColor
@@ -616,7 +612,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var toggleItem: NSMenuItem!
     private var keyStatusItem: NSMenuItem!
     private var keyItem: NSMenuItem!
-    private var debugItem: NSMenuItem!
     private var loginItem: NSMenuItem!
     private var timer: Timer?
     private let capture = KeyCaptureController()
@@ -627,46 +622,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         let menu = NSMenu()
-        stateItem = NSMenuItem(title: "Микрофон: …", action: nil, keyEquivalent: "")
+        stateItem = NSMenuItem(title: L("menu.mic.on"), action: nil, keyEquivalent: "")
         stateItem.isEnabled = false
         menu.addItem(stateItem)
 
-        toggleItem = NSMenuItem(title: "Переключить", action: #selector(toggleMute), keyEquivalent: "")
+        toggleItem = NSMenuItem(title: L("menu.toggle", ""), action: #selector(toggleMute), keyEquivalent: "")
         toggleItem.target = self
         menu.addItem(toggleItem)
 
-        keyStatusItem = NSMenuItem(title: "⌨️ …", action: #selector(openAccessibilitySettings), keyEquivalent: "")
+        keyStatusItem = NSMenuItem(title: "⌨️", action: #selector(openAccessibilitySettings), keyEquivalent: "")
         keyStatusItem.target = self
         menu.addItem(keyStatusItem)
 
-        keyItem = NSMenuItem(title: "Сменить клавишу…", action: #selector(changeKey), keyEquivalent: "")
+        keyItem = NSMenuItem(title: L("menu.changeKey", ""), action: #selector(changeKey), keyEquivalent: "")
         keyItem.target = self
         menu.addItem(keyItem)
 
-        loginItem = NSMenuItem(title: "Запускаться при входе", action: #selector(toggleLoginItem), keyEquivalent: "")
+        loginItem = NSMenuItem(title: L("menu.launchAtLogin"), action: #selector(toggleLoginItem), keyEquivalent: "")
         loginItem.target = self
         menu.addItem(loginItem)
 
         menu.addItem(.separator())
-
-        debugItem = NSMenuItem(title: "Отладка: лог клавиш", action: #selector(toggleDebug), keyEquivalent: "")
-        debugItem.target = self
-        debugItem.state = debugKeyLogging ? .on : .off
-        menu.addItem(debugItem)
-
-        let logItem = NSMenuItem(title: "Показать лог отладки", action: #selector(showLog), keyEquivalent: "")
-        logItem.target = self
-        menu.addItem(logItem)
-
-        menu.addItem(.separator())
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
-        let versionItem = NSMenuItem(title: "MicMute v\(version), сборка \(build)", action: nil, keyEquivalent: "")
+        let versionItem = NSMenuItem(title: L("menu.version", version, build), action: nil, keyEquivalent: "")
         versionItem.isEnabled = false
         menu.addItem(versionItem)
 
         let quitItem = NSMenuItem(
-            title: "Завершить MicMute",
+            title: L("menu.quit"),
             action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         quitItem.target = NSApp
         menu.addItem(quitItem)
@@ -739,9 +723,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             } catch {
                 let alert = NSAlert()
-                alert.messageText = "Не удалось изменить автозапуск"
+                alert.messageText = L("alert.loginitem.title")
                 alert.informativeText = error.localizedDescription
-                alert.addButton(withTitle: "OK")
+                alert.addButton(withTitle: L("alert.ok"))
                 alert.runModal()
             }
             refreshLoginItem()
@@ -757,32 +741,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc func toggleDebug() {
-        debugKeyLogging = !debugKeyLogging
-        UserDefaults.standard.set(debugKeyLogging, forKey: "DebugKeys")
-        debugItem.state = debugKeyLogging ? .on : .off
-        if debugKeyLogging {
-            logKeyLine("--- debug on ---")
-        }
-    }
-
-    @objc func showLog() {
-        let url = URL(fileURLWithPath: NSHomeDirectory() + "/Library/Logs/micmute-keys.log")
-        if !FileManager.default.fileExists(atPath: url.path) {
-            try? "--- лог пуст ---\n".data(using: .utf8)?.write(to: url)
-        }
-        NSWorkspace.shared.activateFileViewerSelecting([url])
-    }
-
     private func setHotKey(code: UInt32, mods: UInt32) {
         let name = modifierName(mods) + keyName(forKeyCode: UInt16(code))
 
         if isDangerousCombo(code: code, mods: mods) {
             let alert = NSAlert()
-            alert.messageText = "Клавиша «\(name)» без модификаторов"
-            alert.informativeText = "Она будет перехватываться во всех приложениях — вводить этот символ станет невозможно. Продолжить?"
-            alert.addButton(withTitle: "Продолжить")
-            alert.addButton(withTitle: "Отмена")
+            alert.messageText = L("alert.dangerous.title", name)
+            alert.informativeText = L("alert.dangerous.message")
+            alert.addButton(withTitle: L("alert.dangerous.continue"))
+            alert.addButton(withTitle: L("alert.dangerous.cancel"))
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
 
@@ -791,9 +758,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         defaults.set(Int(mods), forKey: defaultsHotKeyModifiers)
         if !applyHotKey() {
             let alert = NSAlert()
-            alert.messageText = "Не удалось назначить «\(name)»"
-            alert.informativeText = "Возможно, клавиша занята системой или другим приложением."
-            alert.addButton(withTitle: "OK")
+            alert.messageText = L("alert.regfail.title", name)
+            alert.informativeText = L("alert.regfail.message")
+            alert.addButton(withTitle: L("alert.ok"))
             alert.runModal()
         }
         refreshKeyLabels()
@@ -801,16 +768,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func refreshKeyLabels() {
         let name = currentKeyName()
-        toggleItem.title = "Переключить (\(name))"
-        keyItem.title = "Сменить клавишу…  (\(name))"
+        toggleItem.title = L("menu.toggle", name)
+        keyItem.title = L("menu.changeKey", name)
         if HotkeyTap.shared.isActive {
-            keyStatusItem.title = "⌨️ \(name) — активна"
+            keyStatusItem.title = L("menu.keyActive", name)
         } else if carbonHotKeyActive {
-            keyStatusItem.title = "⌨️ \(name) — активна (Carbon)"
+            keyStatusItem.title = L("menu.keyActiveCarbon", name)
         } else if HotkeyTap.shared.isTrusted {
-            keyStatusItem.title = "⚠️ Клавиша не перехватывается (tap недоступен)"
+            keyStatusItem.title = L("menu.keyTapUnavailable")
         } else {
-            keyStatusItem.title = "⚠️ Нужен доступ «Универсальный доступ» — нажмите сюда"
+            keyStatusItem.title = L("menu.keyNeedsAccessibility")
         }
     }
 
@@ -818,17 +785,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let muted = mutedOverride ?? readMuteState() ?? false
         let button = statusItem.button
         if muted {
-            button?.image = NSImage(systemSymbolName: "mic.slash.fill", accessibilityDescription: "Микрофон выключен")
+            button?.image = NSImage(systemSymbolName: "mic.slash.fill", accessibilityDescription: L("menu.mic.off"))
             button?.image?.isTemplate = false
             button?.contentTintColor = .systemRed
             button?.title = ""
-            stateItem.title = "Микрофон: выключен"
+            stateItem.title = L("menu.mic.off")
         } else {
-            button?.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "Микрофон включён")
+            button?.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: L("menu.mic.on"))
             button?.image?.isTemplate = false
             button?.contentTintColor = .labelColor
             button?.title = ""
-            stateItem.title = "Микрофон: включён"
+            stateItem.title = L("menu.mic.on")
         }
         if button?.image == nil {
             button?.title = muted ? "🔇" : "🎤"

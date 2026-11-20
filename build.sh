@@ -10,6 +10,8 @@ cp build/MicMute MicMute.app/Contents/MacOS/MicMute
 codesign --force --sign "$IDENTITY" --timestamp MicMute.app || codesign --force --sign - MicMute.app
 rm -rf /Applications/MicMute.app
 cp -R MicMute.app /Applications/
+rm -rf /Applications/MicMute.app/Contents/Resources/*.lproj
+cp -R ./*.lproj /Applications/MicMute.app/Contents/Resources/
 pkill -x MicMute 2>/dev/null || true
 sleep 1
 launchctl bootout "gui/$(id -u)/local.micmute" 2>/dev/null || true

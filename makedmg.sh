@@ -16,6 +16,7 @@ mkdir -p MicMute.app/Contents/Resources
 cp AppIcon.icns MicMute.app/Contents/Resources/
 cp src/Info.plist MicMute.app/Contents/Info.plist
 cp build/MicMute MicMute.app/Contents/MacOS/MicMute
+cp -R ./*.lproj MicMute.app/Contents/Resources/
 codesign --force --sign "$IDENTITY" --timestamp MicMute.app || codesign --force --sign - MicMute.app
 
 echo "== DMG =="

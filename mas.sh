@@ -43,6 +43,7 @@ fi
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "mas-build/MicMute.app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "mas-build/MicMute.app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :MicMuteForceCarbon true" "mas-build/MicMute.app/Contents/Info.plist"
+cp -R ./*.lproj "mas-build/MicMute.app/Contents/Resources/"
 
 echo "== подпись (sandbox + hardened runtime) =="
 cp "$PROFILE" "mas-build/MicMute.app/Contents/embedded.provisionprofile"

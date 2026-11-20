@@ -1,0 +1,28 @@
+/* Français */
+
+"menu.mic.on" = "Microphone : activé";
+"menu.mic.off" = "Microphone : coupé";
+"menu.toggle" = "Activer/Désactiver (%@)";
+"menu.changeKey" = "Changer le raccourci…  (%@)";
+"menu.keyActive" = "⌨️ %@ — actif";
+"menu.keyActiveCarbon" = "⌨️ %@ — actif (Carbon)";
+"menu.keyTapUnavailable" = "⚠️ Touche non interceptée (tap indisponible)";
+"menu.keyNeedsAccessibility" = "⚠️ Accès « Accessibilité » requis — cliquez ici";
+"menu.launchAtLogin" = "Lancer à l'ouverture de session";
+"menu.quit" = "Quitter MicMute";
+"menu.version" = "MicMute v%@, build %@";
+
+"capture.title" = "Changer le raccourci";
+"capture.prompt" = "Appuyez sur une touche ou un raccourci…";
+"capture.cancelHint" = "Échap — annuler";
+
+"alert.dangerous.title" = "Touche « %@ » sans modificateurs";
+"alert.dangerous.message" = "Elle sera interceptée dans toutes les apps — vous ne pourrez plus saisir ce caractère. Continuer ?";
+"alert.dangerous.continue" = "Continuer";
+"alert.dangerous.cancel" = "Annuler";
+"alert.regfail.title" = "Impossible d'assigner « %@ »";
+"alert.regfail.message" = "La touche est peut-être utilisée par le système ou une autre app.";
+"alert.ok" = "OK";
+"alert.loginitem.title" = "Impossible de modifier le lancement à l'ouverture";
+
+"keys.space" = "Espace";
