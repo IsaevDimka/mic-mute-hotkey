@@ -1,0 +1,7 @@
+build/
+dmg-staging/
+MicMute.app/
+*.dmg
+AppIcon.iconset/
+AppIcon.icns
+.DS_Store

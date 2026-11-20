@@ -1,0 +1,37 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          mkdir -p build
+          swiftc -O -o build/MicMute src/main.swift
+
+      - name: Smoke test (CLI)
+        run: |
+          rc=0
+          ./build/MicMute --status || rc=$?
+          echo "status exit code: $rc (0 = muted, 1 = unmuted)"
+          test "$rc" -le 1
+
+      - name: Package app (ad-hoc sign)
+        run: |
+          mkdir -p MicMute.app/Contents/MacOS MicMute.app/Contents/Resources
+          cp src/Info.plist MicMute.app/Contents/Info.plist
+          cp build/MicMute MicMute.app/Contents/MacOS/MicMute
+          codesign --force --sign - MicMute.app
+          ditto -c -k --keepParent MicMute.app MicMute-app.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MicMute-app
+          path: MicMute-app.zip
