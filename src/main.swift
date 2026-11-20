@@ -373,6 +373,7 @@ final class HotkeyTap {
             DispatchQueue.main.async {
                 AppDelegate.shared?.refreshKeyLabels()
                 applyHotKey()
+                startGlobalMonitorFallback()
             }
             return
         }
@@ -486,6 +487,26 @@ func applyHotKey() -> Bool {
     carbonHotKeyActive = false
     logLifecycle("Carbon hotkey register FAILED code=\(combo.code)+\(combo.mods) err=\(err)")
     return false
+}
+
+/// Safety net for the sandbox/MAS path: NSEvent global monitors work in the
+/// sandbox and deliver keyDown for combos that include a modifier. Passive
+/// (cannot swallow the event), so it only backs up Carbon, never replaces it.
+var globalMonitorStarted = false
+
+func startGlobalMonitorFallback() {
+    guard !globalMonitorStarted else { return }
+    globalMonitorStarted = true
+    NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
+        if captureInProgress { return }
+        let combo = currentKeyCombo()
+        guard combo.mods != 0 else { return } // monitors never see plain keys
+        let cgMask = UInt32(event.modifierFlags.rawValue)
+            & UInt32(NSEvent.ModifierFlags.deviceIndependentFlagsMask.rawValue)
+        guard UInt32(event.keyCode) == combo.code,
+              toCGMask(combo.mods) == (cgMask & ~secondaryFnMask) else { return }
+        DispatchQueue.main.async { AppDelegate.shared?.toggleMute() }
+    }
 }
 
 func unregisterCarbonHotKey() {
@@ -699,6 +720,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             || (Bundle.main.infoDictionary?["MicMuteForceCarbon"] as? Bool ?? false)
         if forceCarbon {
             applyHotKey()
+            startGlobalMonitorFallback()
         } else {
             HotkeyTap.shared.start()
             if !HotkeyTap.shared.isTrusted {
