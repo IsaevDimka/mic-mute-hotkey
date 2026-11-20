@@ -2,6 +2,7 @@ import Cocoa
 import CoreAudio
 import Carbon
 import ApplicationServices
+import ServiceManagement
 
 // MARK: - Глобальное состояние
 
@@ -286,6 +287,7 @@ func isDangerousCombo(code: UInt32, mods: UInt32) -> Bool {
 // MARK: - Горячая клавиша: CGEventTap (основной) + Carbon (fallback)
 
 private var carbonHotKey: EventHotKeyRef?
+var carbonHotKeyActive = false
 let hotKeySignature: OSType = 0x6D6D7574  // 'mmut'
 
 final class HotkeyTap {
@@ -298,6 +300,7 @@ final class HotkeyTap {
     private var lastEventAt = Date()
     private var lastFlipAt = Date()
     private var pinned = false  // уровень, который точно доставляет события
+    private var createFailures = 0  // после двух неудач — отключаемся, живём на Carbon
 
     /// Уровни tap: 0=HID, 1=session, 2=annotated session
     private let levels: [(UInt32, String)] = [(0, "hid"), (1, "session"), (2, "annotated")]
@@ -322,8 +325,7 @@ final class HotkeyTap {
 
     private func checkTrust() {
         let wasActive = isActive
-        if isTrusted && tap == nil {
-            levelIdx = 0
+        if isTrusted && tap == nil && createFailures < 2 {
             createTap()
         }
         if isActive != wasActive {
@@ -384,6 +386,7 @@ final class HotkeyTap {
             eventsOfInterest: mask,
             callback: callback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()) else {
+            createFailures += 1
             NSLog("MicMute: не удалось создать event tap (level=\(levelName))")
             logKeyLine("--- tap create FAILED (level=\(levelName)) ---")
             return
@@ -461,8 +464,10 @@ func applyHotKey() -> Bool {
         GetEventDispatcherTarget(), 0, &ref)
     if err == noErr {
         carbonHotKey = ref
+        carbonHotKeyActive = true
         return true
     }
+    carbonHotKeyActive = false
     NSLog("MicMute: не удалось зарегистрировать клавишу \(combo.code)+\(combo.mods), err=\(err)")
     return false
 }
@@ -472,6 +477,7 @@ func unregisterCarbonHotKey() {
         UnregisterEventHotKey(old)
         carbonHotKey = nil
     }
+    carbonHotKeyActive = false
 }
 
 func hotKeyHandler(nextHandler: EventHandlerCallRef?, event: EventRef?, userData: UnsafeMutableRawPointer?) -> OSStatus {
@@ -597,6 +603,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var keyStatusItem: NSMenuItem!
     private var keyItem: NSMenuItem!
     private var debugItem: NSMenuItem!
+    private var loginItem: NSMenuItem!
     private var timer: Timer?
     private let capture = KeyCaptureController()
 
@@ -621,6 +628,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         keyItem = NSMenuItem(title: "Сменить клавишу…", action: #selector(changeKey), keyEquivalent: "")
         keyItem.target = self
         menu.addItem(keyItem)
+
+        loginItem = NSMenuItem(title: "Запускаться при входе", action: #selector(toggleLoginItem), keyEquivalent: "")
+        loginItem.target = self
+        menu.addItem(loginItem)
 
         menu.addItem(.separator())
 
@@ -655,9 +666,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         HotkeyTap.shared.onTrustChanged = { [weak self] _ in
             self?.refreshKeyLabels()
         }
-        HotkeyTap.shared.start()
-        if !HotkeyTap.shared.isTrusted {
-            HotkeyTap.shared.promptForTrust()
+        // В MAS-сборке (песочница) tap недоступен — работаем через Carbon
+        let forceCarbon = UserDefaults.standard.bool(forKey: "ForceCarbon")
+            || (Bundle.main.infoDictionary?["MicMuteForceCarbon"] as? Bool ?? false)
+        if forceCarbon {
+            applyHotKey()
+        } else {
+            HotkeyTap.shared.start()
+            if !HotkeyTap.shared.isTrusted {
+                HotkeyTap.shared.promptForTrust()
+            }
         }
 
         // Carbon-обработчик (fallback, если tap недоступен)
@@ -675,6 +693,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         refreshKeyLabels()
+        refreshLoginItem()
         refreshUI()
         timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
             self?.refreshUI()
@@ -693,6 +712,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func openAccessibilitySettings() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+    }
+
+    @objc func toggleLoginItem() {
+        if #available(macOS 13, *) {
+            let service = SMAppService.mainApp
+            do {
+                if service.status == .enabled {
+                    try service.unregister()
+                } else {
+                    try service.register()
+                }
+            } catch {
+                let alert = NSAlert()
+                alert.messageText = "Не удалось изменить автозапуск"
+                alert.informativeText = error.localizedDescription
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            }
+            refreshLoginItem()
+        }
+    }
+
+    private func refreshLoginItem() {
+        guard let item = loginItem else { return }
+        if #available(macOS 13, *) {
+            item.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        } else {
+            item.isEnabled = false
+        }
     }
 
     @objc func toggleDebug() {
@@ -743,6 +791,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         keyItem.title = "Сменить клавишу…  (\(name))"
         if HotkeyTap.shared.isActive {
             keyStatusItem.title = "⌨️ \(name) — активна"
+        } else if carbonHotKeyActive {
+            keyStatusItem.title = "⌨️ \(name) — активна (Carbon)"
         } else if HotkeyTap.shared.isTrusted {
             keyStatusItem.title = "⚠️ Клавиша не перехватывается (tap недоступен)"
         } else {

@@ -5,3 +5,4 @@ MicMute.app/
 AppIcon.iconset/
 AppIcon.icns
 .DS_Store
+mas-build/
