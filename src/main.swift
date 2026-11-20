@@ -301,6 +301,8 @@ final class HotkeyTap {
     private var lastFlipAt = Date()
     private var pinned = false  // уровень, который точно доставляет события
     private var createFailures = 0  // после двух неудач — отключаемся, живём на Carbon
+    private var tapAbandoned = false  // tap жив, но события не доставляет — навсегда на Carbon
+    private var flipCount = 0
 
     /// Уровни tap: 0=HID, 1=session, 2=annotated session
     private let levels: [(UInt32, String)] = [(0, "hid"), (1, "session"), (2, "annotated")]
@@ -325,7 +327,7 @@ final class HotkeyTap {
 
     private func checkTrust() {
         let wasActive = isActive
-        if isTrusted && tap == nil && createFailures < 2 {
+        if isTrusted && tap == nil && createFailures < 2 && !tapAbandoned {
             createTap()
         }
         if isActive != wasActive {
@@ -335,7 +337,8 @@ final class HotkeyTap {
         }
     }
 
-    /// Если tap молчит или выключен — лечим: пересоздаём на другом уровне
+    /// Если tap молчит или выключен — лечим: пересоздаём на другом уровне;
+    /// если ни один уровень не доставляет события — навсегда уходим на Carbon
     private func checkSilence() {
         guard let tap = tap else { return }
         if !CGEvent.tapIsEnabled(tap: tap) {
@@ -343,9 +346,20 @@ final class HotkeyTap {
             CGEvent.tapEnable(tap: tap, enable: true)
             return
         }
-        // Рабочий уровень закреплён — не трогаем (только если совсем давно молчит)
-        guard !pinned, Date().timeIntervalSince(lastFlipAt) > 8 else { return }
+        guard !pinned, !tapAbandoned, Date().timeIntervalSince(lastFlipAt) > 8 else { return }
         guard Date().timeIntervalSince(lastEventAt) > 6 else { return }
+        flipCount += 1
+        if flipCount >= levels.count * 2 {
+            logKeyLine("--- tap never delivered events, abandoning -> Carbon ---")
+            lastFlipAt = Date()
+            invalidateTap()
+            tapAbandoned = true
+            DispatchQueue.main.async {
+                AppDelegate.shared?.refreshKeyLabels()
+                applyHotKey()
+            }
+            return
+        }
         logKeyLine("--- tap silent >6s on level=\(levels[levelIdx].1), switching ---")
         lastFlipAt = Date()
         invalidateTap()
@@ -785,7 +799,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshKeyLabels()
     }
 
-    private func refreshKeyLabels() {
+    func refreshKeyLabels() {
         let name = currentKeyName()
         toggleItem.title = "Переключить (\(name))"
         keyItem.title = "Сменить клавишу…  (\(name))"
