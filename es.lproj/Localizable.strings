@@ -9,8 +9,11 @@
 "menu.keyTapUnavailable" = "⚠️ Tecla no interceptada (tap no disponible)";
 "menu.keyNeedsAccessibility" = "⚠️ Se requiere acceso a Accesibilidad — pulse aquí";
 "menu.launchAtLogin" = "Lanzar al iniciar sesión";
+"menu.about" = "Acerca de MicMute";
+"menu.github" = "Repositorio en GitHub";
 "menu.quit" = "Salir de MicMute";
 "menu.version" = "MicMute v%@, compilación %@";
+"tooltip" = "MicMute — %@ alterna el micrófono";
 
 "capture.title" = "Cambiar tecla";
 "capture.prompt" = "Pulse una tecla nueva o combinación…";

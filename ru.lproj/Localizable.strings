@@ -9,8 +9,11 @@
 "menu.keyTapUnavailable" = "⚠️ Клавиша не перехватывается (tap недоступен)";
 "menu.keyNeedsAccessibility" = "⚠️ Нужен доступ «Универсальный доступ» — нажмите сюда";
 "menu.launchAtLogin" = "Запускаться при входе";
+"menu.about" = "О MicMute";
+"menu.github" = "Репозиторий на GitHub";
 "menu.quit" = "Завершить MicMute";
 "menu.version" = "MicMute v%@, сборка %@";
+"tooltip" = "MicMute — %@ переключает микрофон";
 
 "capture.title" = "Смена клавиши";
 "capture.prompt" = "Нажмите новую клавишу или комбинацию…";

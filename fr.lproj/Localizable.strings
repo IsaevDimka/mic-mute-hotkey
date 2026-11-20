@@ -9,8 +9,11 @@
 "menu.keyTapUnavailable" = "⚠️ Touche non interceptée (tap indisponible)";
 "menu.keyNeedsAccessibility" = "⚠️ Accès « Accessibilité » requis — cliquez ici";
 "menu.launchAtLogin" = "Lancer à l'ouverture de session";
+"menu.about" = "À propos de MicMute";
+"menu.github" = "Dépôt GitHub";
 "menu.quit" = "Quitter MicMute";
 "menu.version" = "MicMute v%@, build %@";
+"tooltip" = "MicMute — %@ active/désactive le microphone";
 
 "capture.title" = "Changer le raccourci";
 "capture.prompt" = "Appuyez sur une touche ou un raccourci…";

@@ -225,8 +225,13 @@ let defaultsHotKeyModifiers = "HotKeyModifiers"
 
 func currentKeyCombo() -> (code: UInt32, mods: UInt32) {
     let defaults = UserDefaults.standard
-    let code = UInt32((defaults.object(forKey: defaultsHotKeyKeyCode) as? Int) ?? 96)   // 96 = F5
-    let mods = UInt32((defaults.object(forKey: defaultsHotKeyModifiers) as? Int) ?? 0)
+    let info = Bundle.main.infoDictionary
+    // Defaults may be baked into Info.plist (the MAS build uses ⌥M so the
+    // hotkey works out of the box without "standard function keys" mode).
+    let defaultCode = (info?["MicMuteDefaultKeyCode"] as? Int) ?? 96   // 96 = F5
+    let defaultMods = (info?["MicMuteDefaultModifiers"] as? Int) ?? 0
+    let code = UInt32((defaults.object(forKey: defaultsHotKeyKeyCode) as? Int) ?? defaultCode)
+    let mods = UInt32((defaults.object(forKey: defaultsHotKeyModifiers) as? Int) ?? defaultMods)
     return (code, mods)
 }
 
@@ -609,6 +614,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     static var shared: AppDelegate?
 
     private var statusItem: NSStatusItem!
+    private var mainMenu: NSMenu!
     private var stateItem: NSMenuItem!
     private var toggleItem: NSMenuItem!
     private var keyStatusItem: NSMenuItem!
@@ -644,6 +650,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(loginItem)
 
         menu.addItem(.separator())
+        let aboutItem = NSMenuItem(title: L("menu.about"), action: #selector(showAboutPanel), keyEquivalent: "")
+        aboutItem.target = self
+        menu.addItem(aboutItem)
+
+        let githubItem = NSMenuItem(title: L("menu.github"), action: #selector(openGitHub), keyEquivalent: "")
+        githubItem.target = self
+        menu.addItem(githubItem)
+
+        menu.addItem(.separator())
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
         let versionItem = NSMenuItem(title: L("menu.version", version, build), action: nil, keyEquivalent: "")
@@ -655,7 +670,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         quitItem.target = NSApp
         menu.addItem(quitItem)
-        statusItem.menu = menu
+        mainMenu = menu
+
+        // Left click toggles the microphone; right click opens the menu.
+        if let button = statusItem.button {
+            button.target = self
+            button.action = #selector(statusBarClicked)
+            button.sendAction(on: [.leftMouseDown])
+            button.toolTip = L("tooltip", currentKeyName())
+        }
+        NSEvent.addLocalMonitorForEvents(matching: .rightMouseDown) { [weak self] event in
+            guard let self = self, let button = self.statusItem.button,
+                  event.window === button.window else { return event }
+            self.mainMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 6), in: button)
+            return nil
+        }
 
         MicMonitor.shared.onChange = { [weak self] in
             self?.refreshUI()
@@ -697,6 +726,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
             self?.refreshUI()
         }
+    }
+
+    @objc private func statusBarClicked() {
+        toggleMute()
+    }
+
+    @objc private func showAboutPanel() {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(nil)
+    }
+
+    @objc private func openGitHub() {
+        NSWorkspace.shared.open(URL(string: "https://github.com/IsaevDimka/mic-mute-hotkey")!)
     }
 
     @objc func toggleMute() {
@@ -771,6 +813,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let name = currentKeyName()
         toggleItem.title = L("menu.toggle", name)
         keyItem.title = L("menu.changeKey", name)
+        statusItem.button?.toolTip = L("tooltip", name)
         if HotkeyTap.shared.isActive {
             keyStatusItem.title = L("menu.keyActive", name)
         } else if carbonHotKeyActive {

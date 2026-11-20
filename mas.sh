@@ -44,6 +44,9 @@ fi
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "mas-build/MicMute.app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "mas-build/MicMute.app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :MicMuteForceCarbon true" "mas-build/MicMute.app/Contents/Info.plist"
+# Default hotkey ⌥M (code 46, optionKey 2048) so it works out of the box
+/usr/libexec/PlistBuddy -c "Add :MicMuteDefaultKeyCode integer 46" "mas-build/MicMute.app/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Add :MicMuteDefaultModifiers integer 2048" "mas-build/MicMute.app/Contents/Info.plist"
 cp -R ./*.lproj "mas-build/MicMute.app/Contents/Resources/"
 
 echo "== signing (sandbox + hardened runtime) =="

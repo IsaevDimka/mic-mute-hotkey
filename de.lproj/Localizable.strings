@@ -9,8 +9,11 @@
 "menu.keyTapUnavailable" = "⚠️ Taste wird nicht abgefangen (Tap nicht verfügbar)";
 "menu.keyNeedsAccessibility" = "⚠️ Bedienungshilfen-Zugriff nötig — hier klicken";
 "menu.launchAtLogin" = "Beim Login starten";
+"menu.about" = "Über MicMute";
+"menu.github" = "GitHub-Repository";
 "menu.quit" = "MicMute beenden";
 "menu.version" = "MicMute v%@, Build %@";
+"tooltip" = "MicMute — %@ schaltet das Mikrofon um";
 
 "capture.title" = "Taste ändern";
 "capture.prompt" = "Neue Taste oder Kombination drücken…";

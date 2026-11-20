@@ -9,8 +9,11 @@
 "menu.keyTapUnavailable" = "⚠️ Hotkey not intercepted (tap unavailable)";
 "menu.keyNeedsAccessibility" = "⚠️ Accessibility access needed — click here";
 "menu.launchAtLogin" = "Launch at login";
+"menu.about" = "About MicMute";
+"menu.github" = "GitHub Repository";
 "menu.quit" = "Quit MicMute";
 "menu.version" = "MicMute v%@, build %@";
+"tooltip" = "MicMute — press %@ to toggle the microphone";
 
 "capture.title" = "Change Hotkey";
 "capture.prompt" = "Press a new key or combination…";

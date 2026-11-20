@@ -9,8 +9,11 @@
 "menu.keyTapUnavailable" = "⚠️ Клавішу не перехоплено (tap недоступний)";
 "menu.keyNeedsAccessibility" = "⚠️ Потрібен доступ «Універсальний доступ» — натисніть тут";
 "menu.launchAtLogin" = "Запускати при вході";
+"menu.about" = "Про MicMute";
+"menu.github" = "Репозиторій на GitHub";
 "menu.quit" = "Завершити MicMute";
 "menu.version" = "MicMute v%@, збірка %@";
+"tooltip" = "MicMute — %@ перемикає мікрофон";
 
 "capture.title" = "Зміна клавіші";
 "capture.prompt" = "Натисніть нову клавішу або комбінацію…";
