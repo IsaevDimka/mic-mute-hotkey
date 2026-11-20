@@ -1,66 +1,74 @@
 # MicMute
 
-Меню-бар приложение для macOS: горячая клавиша включает/выключает микрофон, иконка в строке меню показывает состояние.
+Menu bar app for macOS: a global hotkey toggles your microphone mute, and a status icon shows the state at a glance.
 
-Написано на Swift без зависимостей. Глобальный перехват клавиш — через `CGEventTap` (с резервным вариантом на Carbon), мьют микрофона — через CoreAudio (`kAudioDevicePropertyMute`, с фолбэком на обнуление входной громкости).
+Written in Swift with zero dependencies. Global key capture uses `CGEventTap` (with automatic fallback to Carbon), microphone mute uses CoreAudio (`kAudioDevicePropertyMute`, with a volume-based fallback for devices without a mute property).
 
-## Сборка
+## Features
+
+- Global hotkey (default: F5) — works in any app
+- Menu bar icon: 🎤 mic on, red mic.slash when muted
+- Change the hotkey to any key or combination (⌃⌥⇧⌘) from the menu
+- Instant icon sync even when the system mutes the mic natively
+- Launch at login (SMAppService)
+- Sandbox-ready for the Mac App Store (Carbon mode, no Accessibility prompt needed)
+
+## Screenshots
+
+Menu bar icon + menu:
+
+![menu](docs/menu.png)
+
+## Localization
+
+UI is localized into 6 languages: English, Russian, Ukrainian, German, French, Spanish. The language is picked automatically from system settings (System Settings → General → Language & Region).
+
+## Build
 
 ```bash
-./build.sh     # быстро: приложение + автозапуск из /Applications
-./makedmg.sh   # полный цикл: иконка + подпись + стильный DMG
+./build.sh     # quick: build app + deploy to /Applications + restart agent
+./makedmg.sh   # full: icon + signing + styled DMG
 ```
 
-Требуется Xcode Command Line Tools (`xcrun swiftc`). Подпись — ad-hoc или заданный сертификат в начале скриптов.
+Requires Xcode Command Line Tools (`xcrun swiftc`). Set your signing identity at the top of the scripts; falls back to ad-hoc.
 
-## Установка
+## Install
 
-1. Скопировать `MicMute.app` в `/Applications`
-2. Автозапуск: `local.micmute.plist` в `~/Library/LaunchAgents` + `launchctl bootstrap gui/$(id -u) ...` (build.sh делает сам)
-3. При первом запуске дать доступ: Системные настройки → Конфиденциальность и безопасность → Универсальный доступ → MicMute
+1. Copy `MicMute.app` to `/Applications`
+2. Launch once — approve the system prompt if macOS asks
+3. The mic icon appears in the menu bar
+4. Optional — auto start: `local.micmute.plist` into `~/Library/LaunchAgents` (build.sh does this for you)
 
-## Использование
+## Usage
 
-- **Переключить микрофон** — горячая клавиша (по умолчанию F5) или пункт меню
-- **Сменить клавишу** — меню → «Сменить клавишу…» → нажать любую клавишу/комбинацию
-- Иконка в меню-баре: 🎤 — микрофон включён, красный перечёркнутый — выключен
+- **Toggle microphone** — hotkey (F5 by default) or the menu item
+- **Change hotkey** — menu → "Change Hotkey…" → press any key/combination
+- CLI: `MicMute --toggle` / `MicMute --status` (exit code: 0 = muted, 1 = unmuted)
 
-## Локализация
+## About the F1–F12 keys
 
-Интерфейс переведён на 6 языков: английский, русский, украинский, немецкий, французский, испанский. Язык подбирается автоматически по системным настройкам (переключение: System Settings → General → Language - Иконка в меню-баре: 🎤 — микрофон включён, красный перечёркнутый — выключен Region).
+In the default "special features" mode, macOS owns the F4/F5 microphone key — apps never see it. To make F5 reachable, enable System Settings → Keyboard → "Use F1, F2, etc. keys as standard function keys". Any key outside the F-row (or with modifiers) works without this setting.
 
-## Публикация в Mac App Store
+## Mac App Store publication
 
-1. Купить Apple Developer Program ($99/год)
+1. Enroll in Apple Developer Program ($99/year)
 2. App Store Connect → Identifiers → App ID `com.isaevdimka.micmute` (Mac)
-3. Certificates → создать **Apple Distribution**
-4. Profiles → Mac App Store profile для App ID → скачать
-5. `MAS_IDENTITY="Apple Distribution: Имя (TEAMID)" MAS_PROFILE=/путь.provisionprofile ./mas.sh`
-6. Загрузить `mas-build/MicMute-mas.zip` через Transporter → отправить на review
+3. Certificates → create **Apple Distribution**
+4. Profiles → Mac App Store provisioning profile for the App ID → download
+5. `MAS_IDENTITY="Apple Distribution: Name (TEAMID)" MAS_PROFILE=/path.provisionprofile ./mas.sh`
+6. Upload `mas-build/MicMute-mas.zip` with Transporter → submit for review
 
-Сборка для MAS: песочница, Carbon-хоткеи (без Accessibility), автозапуск через SMAppService.
+The MAS build uses the app sandbox, Carbon hotkeys (no Accessibility permission) and SMAppService for login items.
 
+## Project layout
 
-CLI: `MicMute --toggle` / `MicMute --status` (exit code: 0 = muted, 1 = unmuted)
-
-## Настройка клавиши
-
-Хранится в `UserDefaults` домене `com.local.MicMuteHotkey`:
-`HotKeyKeyCode` (macOS virtual key code, F5 = 96), `HotKeyModifiers` (Carbon-маски).
-
-## Важно про клавиши с F1–F12
-
-В режиме спец-функций (по умолчанию) macOS съедает F5/F4 «микрофонную» клавишу до приложений — перехватить её невозможно. Чтобы F5 работала как обычная клавиша: Системные настройки → Клавиатура → «Использовать клавиши F1, F2 и т.д. как стандартные функциональные». Любая другая клавиша (не F-ряда или с модификаторами) работает без этой настройки.
-
-## Структура
-
-- `src/main.swift` — всё приложение (~700 строк)
-- `src/Info.plist` — манифест бандла
-- `makeicon.swift`, `makebg.swift` — генерация иконки и фона DMG
-- `style-dmg.applescript` — раскладка окна DMG
-- `build.sh`, `makedmg.sh` — сборка
+- `src/main.swift` — the entire app (~700 lines)
+- `src/Info.plist` — bundle manifest
+- `makeicon.swift`, `makebg.swift` — app icon and DMG background generator
+- `style-dmg.applescript` — DMG window layout
+- `build.sh`, `makedmg.sh` — dev builds; `mas.sh` — App Store packaging
 - `.github/workflows/build.yml` — CI
 
-## Лицензия
+## License
 
 MIT

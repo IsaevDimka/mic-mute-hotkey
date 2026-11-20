@@ -1,15 +1,16 @@
 #!/bin/bash
+# Full release build: app + icon + styled, signed DMG.
 set -euo pipefail
 cd "$(dirname "$0")"
 IDENTITY="Apple Development: isaevdimka@gmail.com (XWGZQVM7YX)"
 
-echo "== сборка приложения =="
+echo "== compiling =="
 mkdir -p build
 xcrun swiftc -O -o build/MicMute src/main.swift
 xcrun swiftc -O -o build/makeicon makeicon.swift
 xcrun swiftc -O -o build/makebg makebg.swift
 
-echo "== иконка =="
+echo "== icon =="
 ./build/makeicon AppIcon.iconset
 iconutil -c icns AppIcon.iconset
 mkdir -p MicMute.app/Contents/Resources
@@ -35,4 +36,4 @@ hdiutil detach "$MNT" >/dev/null
 hdiutil convert MicMute-rw.dmg -format UDZO -imagekey zlib-level=9 -o MicMute-1.0.dmg >/dev/null
 rm MicMute-rw.dmg
 codesign --sign "$IDENTITY" --timestamp MicMute-1.0.dmg || codesign --sign - MicMute-1.0.dmg
-echo "Готово: $PWD/MicMute-1.0.dmg"
+echo "Done: $PWD/MicMute-1.0.dmg"

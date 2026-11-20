@@ -4,7 +4,7 @@ import Carbon
 import ApplicationServices
 import ServiceManagement
 
-// MARK: - Локализация
+// MARK: - Localization
 
 func L(_ key: String) -> String {
     NSLocalizedString(key, bundle: .main, comment: "")
@@ -14,14 +14,14 @@ func L(_ key: String, _ args: CVarArg...) -> String {
     String(format: NSLocalizedString(key, bundle: .main, comment: ""), arguments: args)
 }
 
-// MARK: - Глобальное состояние
+// MARK: - Global state
 
 var captureInProgress = false
 
-let secondaryFnMask: UInt32 = 1 << 23  // физическая клавиша fn; не считаем модификатором
+let secondaryFnMask: UInt32 = 1 << 23  // physical fn key; not treated as a modifier
 
-/// Служебный лог жизненного цикла (без нажатий клавиш). Файл появляется только
-/// при наличии событий tap'а; можно удалить — создастся заново.
+/// Lifecycle log (never logs key presses). The file appears only when tap
+/// lifecycle events occur; safe to delete — it will be recreated.
 func logLifecycle(_ s: String) {
     let url = URL(fileURLWithPath: NSHomeDirectory() + "/Library/Logs/micmute.log")
     let fmt = DateFormatter()
@@ -120,7 +120,7 @@ enum Mic {
     }
 }
 
-// MARK: - Слушатель изменений (нативный мьют, смена устройства)
+// MARK: - Change listener (native mute, device switch)
 
 final class MicMonitor {
     static let shared = MicMonitor()
@@ -218,7 +218,7 @@ if args.contains("--toggle") {
     exit(2)
 }
 
-// MARK: - Клавиша: хранение, имена, конвертация модификаторов
+// MARK: - Hotkey: storage, names, modifier conversion
 
 let defaultsHotKeyKeyCode = "HotKeyKeyCode"
 let defaultsHotKeyModifiers = "HotKeyModifiers"
@@ -295,7 +295,7 @@ func isDangerousCombo(code: UInt32, mods: UInt32) -> Bool {
     return name.count == 1 || name == L("keys.space")
 }
 
-// MARK: - Горячая клавиша: CGEventTap (основной) + Carbon (fallback / MAS)
+// MARK: - Hotkey: CGEventTap (primary) + Carbon (fallback / MAS)
 
 private var carbonHotKey: EventHotKeyRef?
 var carbonHotKeyActive = false
@@ -310,12 +310,12 @@ final class HotkeyTap {
     private var levelIdx = 0
     private var lastEventAt = Date()
     private var lastFlipAt = Date()
-    private var pinned = false  // уровень, который точно доставляет события
-    private var createFailures = 0  // после двух неудач — отключаемся, живём на Carbon
-    private var tapAbandoned = false  // tap жив, но события не доставляет — навсегда на Carbon
+    private var pinned = false           // a tap level that definitely delivers events
+    private var createFailures = 0       // give up after two failures, live on Carbon
+    private var tapAbandoned = false     // tap exists but delivers nothing — stay on Carbon forever
     private var flipCount = 0
 
-    /// Уровни tap: 0=HID, 1=session, 2=annotated session
+    /// Tap levels: 0=HID, 1=session, 2=annotated session
     private let levels: [(UInt32, String)] = [(0, "hid"), (1, "session"), (2, "annotated")]
 
     var isActive: Bool { tap != nil }
@@ -331,7 +331,7 @@ final class HotkeyTap {
         }
     }
 
-    /// Показать системный диалог запроса доступа
+    /// Show the system accessibility consent dialog
     func promptForTrust() {
         AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
     }
@@ -348,8 +348,8 @@ final class HotkeyTap {
         }
     }
 
-    /// Если tap молчит или выключен — лечим: пересоздаём на другом уровне;
-    /// если ни один уровень не доставляет события — навсегда уходим на Carbon
+    /// Heal a silent or disabled tap: recreate on another level;
+    /// if no level delivers events, permanently fall back to Carbon
     private func checkSilence() {
         guard let tap = tap else { return }
         if !CGEvent.tapIsEnabled(tap: tap) {
@@ -422,7 +422,7 @@ final class HotkeyTap {
         CGEvent.tapEnable(tap: tapRef, enable: true)
         lastEventAt = Date()
         logLifecycle("tap created (level=\(levelName)) enabled=\(CGEvent.tapIsEnabled(tap: tapRef))")
-        // Tap жив — Carbon-дубль не нужен
+        // Tap is alive — the Carbon duplicate is not needed
         unregisterCarbonHotKey()
     }
 
@@ -437,27 +437,28 @@ final class HotkeyTap {
             if let tap = tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return Unmanaged.passUnretained(event)
         }
-        if type.rawValue == 14 { // kCGEventOtherEvent — не перехватываем
+        if type.rawValue == 14 { // kCGEventOtherEvent — do not intercept
             return Unmanaged.passUnretained(event)
         }
         // keyDown
         let keyCode = UInt32(event.getIntegerValueField(.keyboardEventKeycode))
         let rawMods = UInt32(event.flags.rawValue)
             & UInt32(NSEvent.ModifierFlags.deviceIndependentFlagsMask.rawValue)
-        let cgMods = rawMods & ~secondaryFnMask  // fn не считаем модификатором
+        let cgMods = rawMods & ~secondaryFnMask  // fn is not a modifier
         if !captureInProgress {
             let combo = currentKeyCombo()
             if keyCode == combo.code && toCGMask(combo.mods) == cgMods {
                 if event.getIntegerValueField(.keyboardEventAutorepeat) == 0 {
                     DispatchQueue.main.async { AppDelegate.shared?.toggleMute() }
                 }
-                return nil // проглатываем событие, как настоящий хоткей
+                return nil // swallow the event like a real hotkey
             }
         }
         return Unmanaged.passUnretained(event)
     }
 }
 
+@discardableResult
 func applyHotKey() -> Bool {
     if HotkeyTap.shared.isActive {
         unregisterCarbonHotKey()
@@ -504,7 +505,7 @@ func hotKeyHandler(nextHandler: EventHandlerCallRef?, event: EventRef?, userData
     return noErr
 }
 
-// MARK: - Захват новой клавиши
+// MARK: - Capturing a new hotkey
 
 final class KeyCaptureController: NSObject, NSWindowDelegate {
     private var panel: NSPanel?
@@ -589,7 +590,7 @@ final class KeyCaptureController: NSObject, NSWindowDelegate {
     }
 }
 
-// MARK: - Один экземпляр приложения
+// MARK: - Single instance
 
 private var singletonFD: Int32 = -1
 
@@ -664,7 +665,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         HotkeyTap.shared.onTrustChanged = { [weak self] _ in
             self?.refreshKeyLabels()
         }
-        // В MAS-сборке (песочница) tap недоступен — работаем через Carbon
+        // In the MAS build (sandbox) the tap is unavailable — use Carbon
         let forceCarbon = UserDefaults.standard.bool(forKey: "ForceCarbon")
             || (Bundle.main.infoDictionary?["MicMuteForceCarbon"] as? Bool ?? false)
         if forceCarbon {
@@ -676,7 +677,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Carbon-обработчик (fallback, если tap недоступен)
+        // Carbon handler (fallback when the tap is unavailable)
         var spec = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
             eventKind: UInt32(kEventHotKeyPressed))
@@ -803,10 +804,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-// MARK: - Запуск
+// MARK: - Launch
 
 if !acquireSingleInstance() {
-    // Уже запущен другой экземпляр — молча выходим
+    // Another instance is already running — exit silently
     exit(0)
 }
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+# Quick dev build: compile, sign, deploy to /Applications, restart the agent.
 set -euo pipefail
 cd "$(dirname "$0")"
 IDENTITY="Apple Development: isaevdimka@gmail.com (XWGZQVM7YX)"
@@ -16,4 +17,4 @@ pkill -x MicMute 2>/dev/null || true
 sleep 1
 launchctl bootout "gui/$(id -u)/local.micmute" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/local.micmute.plist" 2>/dev/null || true
-echo "Собрано и развёрнуто в /Applications (агент перезапущен)"
+echo "Built and deployed to /Applications (agent restarted)"
